@@ -43,7 +43,7 @@ export const faqData = {
             id: 'sc1',
             question: 'What is a scam?',
             answer: 'A scam is when someone tries to trick you into giving them money or personal information by lying or making false promises.',
-            twiAnswer: 'Mugu no ne ogya a ɔpanyin bi de ahone bo wo sɛ wode sika anaa wo信息 no ma no.'
+            twiAnswer: 'Mugu no ne ogya a obi de ahone bo wo sɛ wode sika anaa wo ahofadi no ma no.'
         },
         {
             id: 'sc2',

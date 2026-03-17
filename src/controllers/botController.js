@@ -154,8 +154,19 @@ Choose what you want to do:`;
 
         // FAQ pagination
         if (data.startsWith('faq_next_') || data.startsWith('faq_prev_')) {
-            const [, , category, index] = data.split('_');
-            await this.handleFAQItem(chatId, category, parseInt(index));
+            const parts = data.split('_');
+            const direction = parts[1]; // next or prev
+            const category = parts[2];
+            let index = parseInt(parts[3]);
+            
+            // Calculate new index based on direction
+            if (direction === 'next') {
+                index = index + 1;
+            } else {
+                index = index - 1;
+            }
+            
+            await this.handleFAQItem(chatId, category, index);
             return;
         }
     }
