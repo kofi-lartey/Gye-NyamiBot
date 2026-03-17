@@ -13,6 +13,7 @@ class UserStateManager {
         this.states = new Map();
         this.scores = new Map();
         this.passwords = new Map();
+        this.currentQuestions = new Map();
     }
 
     getState(chatId) {
@@ -33,6 +34,14 @@ class UserStateManager {
         return this.getScore(chatId);
     }
 
+    setCurrentQuestion(chatId, questionId) {
+        this.currentQuestions.set(chatId, questionId);
+    }
+
+    getCurrentQuestion(chatId) {
+        return this.currentQuestions.get(chatId) || 1;
+    }
+
     setPassword(chatId, password) {
         this.passwords.set(chatId, password);
     }
@@ -49,6 +58,7 @@ class UserStateManager {
         this.states.set(chatId, UserState.START);
         this.scores.set(chatId, 0);
         this.passwords.delete(chatId);
+        this.currentQuestions.delete(chatId);
     }
 
     getUserData(chatId) {

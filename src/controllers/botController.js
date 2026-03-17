@@ -1,5 +1,5 @@
 import { userStateManager, UserState } from '../services/stateService.js';
-import { getQuizQuestion } from '../services/quizService.js';
+import { getQuizQuestion, getRandomQuestion, getNextQuestion, getTotalQuestions, handleQuizAnswer, checkAnswer, getQuizKeyboard, getAllQuestions } from '../services/quizService.js';
 import { validatePassword, getPasswordMessage } from '../services/passwordService.js';
 import { getFAQByCategory, faqCategories } from '../services/faqService.js';
 import { getTTSContent, generateAudio, AUDIO_CLIPS, getAudioPath, audioExists } from '../services/ttsService.js';
@@ -112,13 +112,17 @@ Choose what you want to do:`;
         }
 
         // Quiz answers
-        if (data === 'quiz_answer_1') {
-            await this.handleQuizCorrect(chatId);
-            return;
-        }
-
-        if (data.startsWith('quiz_answer_')) {
-            await this.handleQuizWrong(chatId);
+        if (data.startsWith('quiz_')) {
+            const parts = data.split('_');
+            const questionId = parseInt(parts[1]);
+            const answerIndex = parseInt(parts[2]);
+            const isCorrect = checkAnswer(questionId, answerIndex);
+            
+            if (isCorrect) {
+                await this.handleQuizCorrect(chatId);
+            } else {
+                await this.handleQuizWrong(chatId);
+            }
             return;
         }
 
@@ -341,17 +345,26 @@ Choose a topic:`;
     // ========== QUIZ HANDLERS ==========
 
     async handleQuiz(chatId) {
+        userStateManager.reset(chatId);
         userStateManager.setState(chatId, UserState.QUIZ);
+        userStateManager.setCurrentQuestion(chatId, 1);
         
         const question = getQuizQuestion(1);
+        const total = getTotalQuestions();
         
-        const message = `🧠 *Quiz Time!*\n\n${question.question}`;
-        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...getQuizKeyboard() });
+        const message = `🧠 *Quiz Time!*
+
+*Question 1 of ${total}*
+
+${question.question}`;
+        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...getQuizKeyboard(question.id) });
     }
 
     async handleQuizCorrect(chatId) {
         userStateManager.incrementScore(chatId);
         const score = userStateManager.getScore(chatId);
+        const currentQ = userStateManager.getCurrentQuestion(chatId);
+        const total = getTotalQuestions();
         
         const content = getTTSContent('quizCorrect');
         
@@ -363,18 +376,69 @@ Choose a topic:`;
             }
         } catch (e) {}
         
-        const message = `✅ *Correct!*\n\n${content.english}\n\n*Twia:* ${content.twi}\n\n*Score: ${score}/1*\n\nNow let's build a strong password! 🔐\n\nCreate a strong password with:\n• At least 8 characters\n• At least 1 number\n• At least 1 symbol\n• Uppercase & lowercase letters\n\nType your password below:`;
+        // Check if there are more questions
+        if (currentQ < total) {
+            const nextQ = currentQ + 1;
+            const question = getQuizQuestion(nextQ);
+            userStateManager.setCurrentQuestion(chatId, nextQ);
+            
+            const message = `✅ *Correct! 🎉*
 
-        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-        userStateManager.setState(chatId, UserState.PASSWORD);
+${content.english}
+
+*Score: ${score}/${nextQ - 1}*
+
+---
+
+*Question ${nextQ} of ${total}:*
+
+${question.question}`;
+            await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...getQuizKeyboard(question.id) });
+        } else {
+            // Quiz completed - go to password
+            const message = `✅ *Correct! 🎉*
+
+${content.english}
+
+*Final Score: ${score}/${total}*
+
+---
+
+Now let's build a strong password! 🔐
+
+Create a strong password with:
+• At least 8 characters
+• At least 1 number
+• At least 1 symbol
+• Uppercase & lowercase letters
+
+Type your password below:`;
+            await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+            userStateManager.setState(chatId, UserState.PASSWORD);
+        }
     }
 
     async handleQuizWrong(chatId) {
+        const currentQ = userStateManager.getCurrentQuestion(chatId);
+        const total = getTotalQuestions();
         const content = getTTSContent('quizWrong');
         
-        const message = `❌ *Be careful!*\n\n${content.english}\n\n*Twia:* ${content.twi}\n\n_Real companies will never ask you to click links in messages._\n\n*Try again:* What do you do?`;
+        const message = `❌ *Be careful!*
 
-        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...getQuizKeyboard() });
+${content.english}
+
+*Twia:* ${content.twi}
+
+_Real companies will never ask you to click links in messages._
+
+---
+
+*Question ${currentQ} of ${total}:*
+
+Try again! What do you do?`;
+
+        const question = getQuizQuestion(currentQ);
+        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...getQuizKeyboard(question.id) });
     }
 
     // ========== PASSWORD HANDLERS ==========
