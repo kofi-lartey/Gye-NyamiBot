@@ -1,8 +1,8 @@
 import { userStateManager, UserState } from '../services/stateService.js';
 import { getQuizQuestion } from '../services/quizService.js';
 import { validatePassword, getPasswordMessage } from '../services/passwordService.js';
-import { getFAQByCategory, getFAQById, faqCategories, getFAQCategories } from '../services/faqService.js';
-import { getTTSContent, getLessonAudioContent } from '../services/ttsService.js';
+import { getFAQByCategory, faqCategories } from '../services/faqService.js';
+import { getTTSContent } from '../services/ttsService.js';
 import { mainReplyKeyboard, listenKeyboard, getQuizKeyboard, faqCategoriesKeyboard, getFAQPaginationKeyboard } from '../config/keyboards.js';
 
 export class BotController {
@@ -51,7 +51,7 @@ Choose what you want to do:`;
 • Create strong passwords
 
 *Features:*
-• 🎧 Listen - Audio lessons
+• 🎧 Listen - Audio lessons (opens web player)
 • 📖 Read - Written lessons  
 • 🧠 Quiz - Test knowledge
 • ❓ FAQ - Ask questions`;
@@ -89,6 +89,11 @@ Choose what you want to do:`;
 
         if (data === 'listen_twi') {
             await this.handleListenTwi(chatId);
+            return;
+        }
+
+        if (data === 'listen_twi_text') {
+            await this.handleListenTwiText(chatId);
             return;
         }
 
@@ -189,10 +194,11 @@ Choose your language:`;
     async handleListenEnglish(chatId) {
         const content = getTTSContent('gyeNyame');
         
-        const message = `🔊 *Audio (English)*\n\n
-${content.english}\n\n
-_Gye Nyame is an Adinkra symbol from Ghana. It means "Except God" - reminding us that only God gives true protection._\n\n
-_Like we protect ourselves in the physical world, we must also protect ourselves online!_`;
+        const message = `🔊 *Audio Player (English)*\n\n
+Tap the button below to open the audio player:\n
+👆 https://your-domain.com/audio\n\n
+or copy: http://localhost:3000/audio\n\n
+_This will open a web player where you can listen to the lesson in English._`;
 
         await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...listenKeyboard });
     }
@@ -200,10 +206,31 @@ _Like we protect ourselves in the physical world, we must also protect ourselves
     async handleListenTwi(chatId) {
         const content = getTTSContent('gyeNyame');
         
-        const message = `🔊 *Audio (Twi / Akan)*\n\n
-*Twi:*\n${content.twi}\n\n
-*Translation:*\nGye Nyame yɛ Adinkra symbol bi firi Ghana. Ɛkyerɛ "Gyen Nyame" - Ɛda no hwe sɛ Onyankopɔn nko na Ɛma ahyeƐ.\n\n
-_Sɛ yebɔ ahyeƐ wɔ wiase mu no, enti yebetumi aka yɛn ahyeƐ wɔ intanɛ no mu nso!_`;
+        // Create inline keyboard with web player URL
+        const audioKeyboard = {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🎧 Open Audio Player', url: 'http://localhost:3000/audio' }],
+                    [{ text: '🇬🇭 Listen in Twi (Text)', callback_data: 'listen_twi_text' }],
+                    [{ text: '⬅️ Back to Menu', callback_data: 'action_back' }]
+                ]
+            }
+        };
+        
+        const message = `🔊 *Twi Audio Player*\n\n
+*Tap "Open Audio Player" to hear the Twi narration!*\n\n
+The player uses your phone's built-in speech to read Twi text aloud.\n\n
+*Twia:* ${content.twi}`;
+
+        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...audioKeyboard });
+    }
+
+    async handleListenTwiText(chatId) {
+        const content = getTTSContent('gyeNyame');
+        
+        const message = `🇬🇭 *Gye Nyame (Twi)*\n\n
+${content.twi}\n\n
+*Translation:*\n${content.english}`;
 
         await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...listenKeyboard });
     }

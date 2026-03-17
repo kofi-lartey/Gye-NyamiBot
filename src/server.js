@@ -1,7 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { GyeNyameBot } from './bot.js';
 import { createBotRoutes } from './routes/botRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -14,17 +19,20 @@ if (!TOKEN) {
 const app = express();
 app.use(express.json());
 
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
 const bot = new GyeNyameBot(TOKEN);
 bot.start();
 
 app.use('/', createBotRoutes(bot.controller));
 
 app.get('/', (req, res) => {
-    res.json({
-        status: 'running',
-        bot: 'Gye Nyame - Digital Protection Learning Module',
-        version: '1.0.0'
-    });
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+app.get('/audio', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 app.get('/health', (req, res) => {
@@ -33,7 +41,8 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🌐 Server running on port ${PORT}`);
+    console.log(`🌐 Server running on http://localhost:${PORT}`);
+    console.log(`🎧 Audio player: http://localhost:${PORT}/audio`);
 });
 
 process.on('SIGINT', () => {
