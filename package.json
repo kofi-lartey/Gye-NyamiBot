@@ -11,9 +11,10 @@
     "webhook:dev": "nodemon src/webhook.js"
   },
   "dependencies": {
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "node-telegram-bot-api": "^0.64.0",
-    "dotenv": "^16.3.1"
+    "gtts": "^0.2.1",
+    "node-telegram-bot-api": "^0.64.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

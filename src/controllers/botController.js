@@ -2,8 +2,10 @@ import { userStateManager, UserState } from '../services/stateService.js';
 import { getQuizQuestion } from '../services/quizService.js';
 import { validatePassword, getPasswordMessage } from '../services/passwordService.js';
 import { getFAQByCategory, faqCategories } from '../services/faqService.js';
-import { getTTSContent } from '../services/ttsService.js';
+import { getTTSContent, generateAudio, AUDIO_CLIPS, getAudioPath, audioExists } from '../services/ttsService.js';
 import { mainReplyKeyboard, listenKeyboard, getQuizKeyboard, faqCategoriesKeyboard, getFAQPaginationKeyboard } from '../config/keyboards.js';
+import fs from 'fs';
+import path from 'path';
 
 export class BotController {
     constructor(bot) {
@@ -51,7 +53,7 @@ Choose what you want to do:`;
 • Create strong passwords
 
 *Features:*
-• 🎧 Listen - Audio lessons (opens web player)
+• 🎧 Listen - Audio lessons (voice messages!)
 • 📖 Read - Written lessons  
 • 🧠 Quiz - Test knowledge
 • ❓ FAQ - Ask questions`;
@@ -155,11 +157,10 @@ Choose what you want to do:`;
         // FAQ pagination
         if (data.startsWith('faq_next_') || data.startsWith('faq_prev_')) {
             const parts = data.split('_');
-            const direction = parts[1]; // next or prev
+            const direction = parts[1];
             const category = parts[2];
             let index = parseInt(parts[3]);
             
-            // Calculate new index based on direction
             if (direction === 'next') {
                 index = index + 1;
             } else {
@@ -175,7 +176,6 @@ Choose what you want to do:`;
         const chatId = msg.chat.id;
         const text = msg.text;
 
-        // Menu buttons
         if (text === '🎧 Listen') {
             await this.handleListen(chatId);
         } else if (text === '📖 Read') {
@@ -203,45 +203,71 @@ Choose your language:`;
     }
 
     async handleListenEnglish(chatId) {
+        try {
+            // Try to send voice message
+            const audioPath = getAudioPath('clip_welcome_en.mp3');
+            
+            if (audioExists('clip_welcome_en.mp3')) {
+                await this.bot.sendVoice(chatId, audioPath, {
+                    caption: '🔊 Welcome! (English)',
+                    parse_mode: 'Markdown'
+                });
+            } else {
+                // Generate audio on the fly
+                await this.bot.sendMessage(chatId, '🎧 Generating audio...');
+                const newPath = await generateAudio(AUDIO_CLIPS.welcome.en, 'en-US-AriaNeural', 'temp_en.mp3');
+                if (newPath) {
+                    await this.bot.sendVoice(chatId, newPath, {
+                        caption: '🔊 Welcome! (English)',
+                        parse_mode: 'Markdown'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Audio error:', error);
+        }
+        
         const content = getTTSContent('gyeNyame');
         
-        const message = `🔊 *Audio Player (English)*\n\n
-Tap the button below to open the audio player:\n
-👆 https://your-domain.com/audio\n\n
-or copy: http://localhost:3000/audio\n\n
-_This will open a web player where you can listen to the lesson in English._`;
-
+        const message = `📝 *Transcript:*\n\n${content.english}`;
         await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...listenKeyboard });
     }
 
     async handleListenTwi(chatId) {
+        try {
+            // Try to send Twi voice message
+            const audioPath = getAudioPath('clip_welcome_tw.mp3');
+            
+            if (audioExists('clip_welcome_tw.mp3')) {
+                await this.bot.sendVoice(chatId, audioPath, {
+                    caption: '🔊 Akwaaba! (Twi)',
+                    parse_mode: 'Markdown'
+                });
+            } else {
+                // Generate audio on the fly
+                await this.bot.sendMessage(chatId, '🎧 Generating Twi audio...');
+                const newPath = await generateAudio(AUDIO_CLIPS.welcome.twi, 'en-US-AriaNeural', 'temp_tw.mp3');
+                if (newPath) {
+                    await this.bot.sendVoice(chatId, newPath, {
+                        caption: '🔊 Akwaaba! (Twi)',
+                        parse_mode: 'Markdown'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Audio error:', error);
+        }
+        
         const content = getTTSContent('gyeNyame');
         
-        // Create inline keyboard with web player URL
-        const audioKeyboard = {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: '🎧 Open Audio Player', url: 'http://localhost:3000/audio' }],
-                    [{ text: '🇬🇭 Listen in Twi (Text)', callback_data: 'listen_twi_text' }],
-                    [{ text: '⬅️ Back to Menu', callback_data: 'action_back' }]
-                ]
-            }
-        };
-        
-        const message = `🔊 *Twi Audio Player*\n\n
-*Tap "Open Audio Player" to hear the Twi narration!*\n\n
-The player uses your phone's built-in speech to read Twi text aloud.\n\n
-*Twia:* ${content.twi}`;
-
-        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...audioKeyboard });
+        const message = `📝 *Twi Transcript:*\n\n${content.twi}`;
+        await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...listenKeyboard });
     }
 
     async handleListenTwiText(chatId) {
         const content = getTTSContent('gyeNyame');
         
-        const message = `🇬🇭 *Gye Nyame (Twi)*\n\n
-${content.twi}\n\n
-*Translation:*\n${content.english}`;
+        const message = `🇬🇭 *Gye Nyame (Twi)*\n\n${content.twi}\n\n*Translation:*\n${content.english}`;
 
         await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown', ...listenKeyboard });
     }
@@ -329,6 +355,14 @@ Choose a topic:`;
         
         const content = getTTSContent('quizCorrect');
         
+        // Try to send voice message
+        try {
+            const audioPath = getAudioPath('clip_quizCorrect_en.mp3');
+            if (audioExists('clip_quizCorrect_en.mp3')) {
+                await this.bot.sendVoice(chatId, audioPath);
+            }
+        } catch (e) {}
+        
         const message = `✅ *Correct!*\n\n${content.english}\n\n*Twia:* ${content.twi}\n\n*Score: ${score}/1*\n\nNow let's build a strong password! 🔐\n\nCreate a strong password with:\n• At least 8 characters\n• At least 1 number\n• At least 1 symbol\n• Uppercase & lowercase letters\n\nType your password below:`;
 
         await this.bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -383,6 +417,16 @@ Choose a topic:`;
 
     async handleCertification(chatId) {
         const content = getTTSContent('congratulations');
+        
+        // Try to send voice message
+        try {
+            const audioPath = getAudioPath('clip_congratulations_en.mp3');
+            if (audioExists('clip_congratulations_en.mp3')) {
+                await this.bot.sendVoice(chatId, audioPath, {
+                    caption: '🎉 Congratulations!'
+                });
+            }
+        } catch (e) {}
         
         const message = `🎉 *CONGRATULATIONS!*\n\nYou have completed the Gye Nyame Digital Safety Module!\n\n🏆 *You are now:*\nDigital Protector – Gye Nyame Level 1\n\n🛡️ *Remember:*\n${content.english}\n\n*Twia:* ${content.twi}\n\nType /start to begin again or /help for assistance.`;
 
