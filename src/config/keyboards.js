@@ -71,8 +71,6 @@ export const createInlineKeyboard = (buttons) => {
     };
 };
 
-export const getQuizKeyboard = () => quizKeyboard;
-
 export const getFAQPaginationKeyboard = (category, currentIndex, total) => {
     const buttons = [];
     

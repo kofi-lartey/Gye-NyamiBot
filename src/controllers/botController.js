@@ -3,7 +3,7 @@ import { getQuizQuestion, getRandomQuestion, getNextQuestion, getTotalQuestions,
 import { validatePassword, getPasswordMessage } from '../services/passwordService.js';
 import { getFAQByCategory, faqCategories } from '../services/faqService.js';
 import { getTTSContent, generateAudio, AUDIO_CLIPS, getAudioPath, audioExists } from '../services/ttsService.js';
-import { mainReplyKeyboard, listenKeyboard, getQuizKeyboard, faqCategoriesKeyboard, getFAQPaginationKeyboard } from '../config/keyboards.js';
+import { mainReplyKeyboard, listenKeyboard, faqCategoriesKeyboard, getFAQPaginationKeyboard } from '../config/keyboards.js';
 import fs from 'fs';
 import path from 'path';
 
