@@ -28,9 +28,10 @@ export const passwordKeyboard = [
 export const mainReplyKeyboard = {
     reply_markup: {
         keyboard: [
+            [{ text: '🦅 Path of Wisdom' }],
             [{ text: '🎧 Listen' }, { text: '📖 Read' }],
             [{ text: '🧠 Start Quiz' }],
-            [{ text: '🔄 Reset' }]
+            [{ text: '❓ FAQ' }, { text: '🔄 Reset' }]
         ],
         resize_keyboard: true,
         one_time_keyboard: false
